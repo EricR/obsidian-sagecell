@@ -15,19 +15,13 @@ export default class SageCellPlugin extends Plugin {
 
     this.settings = Object.assign({}, new SageCellSettings(), await this.loadData());
     this.addSettingTab(new SageCellSettingsTab(this.app, this));
-    this.configurePrism();
     this.statusBarItem = this.addStatusBarItem();
-    this.statusBarItem.innerText = "Sage: Disconnected";
+    this.statusBarItem.innerText = "Sage: disconnected";
     this.client = new Client(this.settings);
     this.renderer = new Renderer(this);
 
-    this.client.onConnect = () => {
-      new Notice("Connecteed to Sage server.");
-      this.statusBarItem.innerText = "Sage: Connected";
-    }
-    this.client.onDisconnect = () => {
-      new Notice("Disconnected from Sage server.");
-      this.statusBarItem.innerText = "Sage: Disconnected";
+    this.client.onStatusChange = (status: string) => {
+      this.statusBarItem.innerText = `Sage: ${status}`;
     }
     this.client.onError = (e: Error) => {
       new Notice(`Sage Error: ${e.message}`);
@@ -50,6 +44,7 @@ export default class SageCellPlugin extends Plugin {
     }
 
     window.CodeMirror.defineMIME('sage', 'python');
+    this.configurePrism();
     MarkdownPreviewRenderer.registerPostProcessor(this.renderer.postprocessor);
   }
 
@@ -62,8 +57,9 @@ export default class SageCellPlugin extends Plugin {
 
     console.log("SageCell: Waiting for Prism.js to load");
 
+    // Hacky workaround. There has to be a better way to do this...
     while (!prismLoaded) {
-      await new Promise(r => setTimeout(r, 100));
+      await new Promise(r => setTimeout(r, 8000));
       prismLoaded = window['Prism'];
     }
 

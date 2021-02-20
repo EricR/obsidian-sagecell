@@ -10,12 +10,11 @@ export default class Client {
   cellSessionId: string
   ws: SockJS;
   outputEls: any;
-  onConnect: any;
-  onDisconnect: any;
   onError: any;
   onStream: any;
   onDisplayData: any;
   onSageError: any;
+  onStatusChange: any;
 
   constructor(settings: any) {
     this.serverUrl = settings.serverUrl;
@@ -41,18 +40,12 @@ export default class Client {
         this.ws = new SockJS(this.getWSUrl());
         this.ws.onopen = () => {
           this.connected = true;
-          if (this.onConnect) { this.onConnect(); }
+          if (this.onStatusChange) { this.onStatusChange("connected"); }
           resolve();
         }
-        this.ws.onmessage = (msg) => {
-          this.handleMessage(msg);
-        }
-        this.ws.onerror = (e) => {
-          if (this.onError) { this.onError(e); }
-        }
-        this.ws.onclose = () => {
-          if (this.onDisconnect) { this.disconnect(); }
-        }
+        this.ws.onmessage = (msg: any) => { this.handleMessage(msg); }
+        this.ws.onerror = (e: any) => { if (this.onError) this.onError(e); }
+        this.ws.onclose = () => { this.disconnect(); }
       }).catch((e) => {
         if (this.onError) { this.onError(e); }
         reject(e);
@@ -95,7 +88,7 @@ export default class Client {
 
   handleMessage(msg: any) {
     const data = JSON.parse(msg.data.substring(46));
-    const msg_type = data.msg_type;
+    const msg_type = data.header.msg_type;
     const msg_id = data.parent_header.msg_id;
     const content = data.content;
 
@@ -108,15 +101,19 @@ export default class Client {
     if (msg_type == 'error') {
       if (this.onSageError) this.onSageError(this.outputEls[msg_id], content);
     }
+    if (msg_type == 'status' && content.execution_state) {
+      if (this.onStatusChange) this.onStatusChange(content.execution_state);
+      if (content.execution_state == 'dead') this.disconnect();
+    }
   }
 
   disconnect() {
+    if (this.ws) this.ws.close();
     this.connected = false;
     this.sessionId = null;
     this.cellSessionId = null;
-    this.ws.close();
     this.ws = null;
-    this.onDisconnect();
+    if (this.onStatusChange) { this.onStatusChange("disconnected"); }
   }
 
   getKernelUrl(): string {
