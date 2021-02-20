@@ -11,3 +11,5 @@ Obsidian plugin for embedding Sage computations into notes.
 ## Usage
 
 Include a sage code snippet in a note. When the note gets rendered, the Sage code within it will be executed and the results will be inserted into the preview.
+
+![Example Screenshot](https://raw.github.com/ericr/obisidian-sagecell/master/example-screenshot.png)
