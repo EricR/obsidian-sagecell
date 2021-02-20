@@ -1,0 +1,20 @@
+code.language-sage::before {
+  content: "sage[in]";
+  float: right;
+  opacity: 0.3;
+}
+
+.sagecell {
+  margin-top: 0px;
+  overflow: auto;
+}
+
+.sagecell::before {
+  content: "sage[out]";
+  float: right;
+  opacity: 0.3;
+}
+
+.sagecell-error {
+  color: red;
+}
