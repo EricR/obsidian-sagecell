@@ -1,109 +1,100 @@
 import { v4 as uuidv4 } from 'uuid';
 import fetch from 'cross-fetch';
 import SockJS from 'sockjs-client';
+import OutputWriter from './output-writer'
 
 export default class Client {
   serverUrl: string;
   connected: boolean;
-  timeout: number;
   sessionId: string;
-  cellSessionId: string
-  ws: SockJS;
-  outputEls: any;
-  onError: any;
-  onStream: any;
-  onDisplayData: any;
-  onSageError: any;
-  onStatusChange: any;
+  cellSessionId: string;
+  ws: any;
+  outputWriters: any;
 
   constructor(settings: any) {
     this.serverUrl = settings.serverUrl;
-    this.timeout = settings.timeout;
+    this.outputWriters = {};
   }
 
-  connect(): Promise<any> {
-    this.connected = false;
-    this.sessionId = null;
-    this.cellSessionId = uuidv4();
-    this.ws = null;
-    this.outputEls = {}
-
+  async connect(): Promise<any> {
     return new Promise((resolve, reject) => {
+      if (this.connected) { return resolve(); }
+
+      this.connected = false;
+      this.sessionId = null;
+      this.cellSessionId = uuidv4();
+      this.outputWriters = {};
+      this.ws = null;
+
       fetch(this.getKernelUrl(), {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        }
+        headers: { 'Content-Type': 'application/json' }
       }).then(response => response.json())
       .then((data) => {
         this.sessionId = data.id;
         this.ws = new SockJS(this.getWSUrl());
         this.ws.onopen = () => {
           this.connected = true;
-          if (this.onStatusChange) { this.onStatusChange("connected"); }
           resolve();
         }
-        this.ws.onmessage = (msg: any) => { this.handleMessage(msg); }
-        this.ws.onerror = (e: any) => { if (this.onError) this.onError(e); }
+        this.ws.onmessage = (msg: any) => { this.handleReplyWithSession(msg); }
         this.ws.onclose = () => { this.disconnect(); }
       }).catch((e) => {
-        if (this.onError) { this.onError(e); }
         reject(e);
       });
     });
   }
 
-  async ensureConnected(): Promise<any> {
-    if (!this.connected) return await this.connect();
-  }
-
-  send(msg_type: string, content: object, outputEl: HTMLElement): Promise<any> {
-    return new Promise((resolve, reject) => {
-      if (!this.connected) {
-        reject(new Error("Not connected"));
-      }
-      if (!this.ws) {
-        reject(new Error("No WebSocket connection"));
-      }
-
-      const id = uuidv4();
-      this.outputEls[id] = outputEl;
-
-      const payload = JSON.stringify({
-        channel: 'shell',
-        header: {
-          msg_type: msg_type,
-          msg_id: id,
-          session: this.cellSessionId,
-          username: ""
+  execute(code: string, outputEl: HTMLElement) {
+    const msgId = uuidv4();
+    const payload = JSON.stringify({
+      header: {
+        msg_id: msgId,
+        username: "",
+        session: this.cellSessionId,
+        msg_type: 'execute_request',
+      },
+      metadata: {},
+      content: {
+        code: code,
+        silent: false,
+        user_variables: [],
+        user_expressions: {
+          "_sagecell_files": "sys._sage_.new_files()",
         },
-        parent_header: {},
-        metadata: {},
-        content: content
-      });
-
-      this.ws.send(`${this.sessionId}/channels,${payload}`);
+        allow_stdin: false
+      },
+      parent_header: {}
     });
+    this.outputWriters[msgId] = new OutputWriter(outputEl);
+    this.ws.send(`${this.sessionId}/channels,${payload}`);
   }
 
-  handleMessage(msg: any) {
+  handleReplyWithSession(msg: any) {
     const data = JSON.parse(msg.data.substring(46));
-    const msg_type = data.header.msg_type;
-    const msg_id = data.parent_header.msg_id;
+    const msgType = data.header.msg_type;
+    const msgId = data.parent_header.msg_id;
     const content = data.content;
 
-    if (msg_type == 'stream' && content.text) {
-      if (this.onStream) this.onStream(this.outputEls[msg_id], content.text);
+    if (msgType == 'status' && content.execution_state) {
+      if (content.execution_state == 'dead') return this.disconnect();
+      return;
     }
-    if (msg_type == 'display_data' && content.data['text/image-filename']) {
-      if (this.onDisplayData) this.onDisplayData(this.outputEls[msg_id], this.getFileUrl(content.data['text/image-filename']))
+    if (msgType == 'stream' && content.text) {
+      this.outputWriters[msgId].appendText(content.text);
+      return;
     }
-    if (msg_type == 'error') {
-      if (this.onSageError) this.onSageError(this.outputEls[msg_id], content);
+    if (msgType == 'display_data' && content.data['text/image-filename']) {
+      this.outputWriters[msgId].appendImage(this.getFileUrl(content.data['text/image-filename']));
+      return;
     }
-    if (msg_type == 'status' && content.execution_state) {
-      if (this.onStatusChange) this.onStatusChange(content.execution_state);
-      if (content.execution_state == 'dead') this.disconnect();
+    if (msgType == 'display_data' && content.data['text/html']) {
+      this.outputWriters[msgId].appendSafeHTML(content.data['text/html']);
+      return;
+    }
+    if (msgType == 'error') {
+      this.outputWriters[msgId].appendError(content);
+      return;
     }
   }
 
@@ -112,12 +103,12 @@ export default class Client {
     this.connected = false;
     this.sessionId = null;
     this.cellSessionId = null;
+    this.outputWriters = {};
     this.ws = null;
-    if (this.onStatusChange) { this.onStatusChange("disconnected"); }
   }
 
   getKernelUrl(): string {
-    return `${this.serverUrl}/kernel?timeout=${this.timeout}&CellSessionID=${this.cellSessionId}`
+    return `${this.serverUrl}/kernel?CellSessionID=${this.cellSessionId}`
   }
 
   getWSUrl(): string {
