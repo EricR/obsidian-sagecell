@@ -1,11 +1,10 @@
-import { Plugin, Notice } from 'obsidian';
+import { Plugin } from 'obsidian';
 import SageCellSettingsTab from './settings-tab';
 import SageCellSettings from './settings';
 import Client from './client'
 
 export default class SageCellPlugin extends Plugin {
   settings: SageCellSettings;
-  statusBarItem: HTMLElement;
   client: Client;
 
   async onload() {
