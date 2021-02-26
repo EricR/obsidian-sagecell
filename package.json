@@ -1,7 +1,7 @@
 {
   "name": "obsidian-sagecell",
-  "version": "1.0.0",
-  "description": "A plugin for embedding Sage computations into Obsidian notes.",
+  "version": "1.0.1",
+  "description": "A plugin for executing Sage computations in Obsidian notes.",
   "main": "main.js",
   "scripts": {
     "dev": "rollup --config rollup.config.js -w",

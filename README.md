@@ -1,6 +1,6 @@
 # obsidian-sagecell
 
-Obsidian plugin for embedding Sage computations into notes.
+Obsidian plugin for executing Sage computations in notes.
 
 ## Installation and Configuration
 
@@ -10,6 +10,4 @@ Obsidian plugin for embedding Sage computations into notes.
 
 ## Usage
 
-Include a sage code snippet in a note. When the note gets rendered, the Sage code within it will be executed and the results will be inserted into the preview.
-
-![Example Screenshot](https://raw.githubusercontent.com/EricR/obsidian-sagecell/master/example-screenshot.png)
+Include a sage code snippet in a note. Then, when viewing the note in rendered markdown form, execute the plugin's command (e.g., `⌘`+`p` and type 'exec').
