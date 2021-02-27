@@ -16,7 +16,7 @@ export default class SageCellPlugin extends Plugin {
       id: 'execute-sage-cells',
       name: 'Execute all sage cells in the current document.',
       checkCallback: (checking: boolean): boolean | void => {
-        if (checking) return this.getActiveView().currentMode.type == 'preview';
+        if (checking) return this.getActiveView().currentMode && this.getActiveView().currentMode.type == 'preview';
         this.executeCurrentDoc();
       }
     });
