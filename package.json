@@ -1,6 +1,6 @@
 {
   "name": "obsidian-sagecell",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "A plugin for executing Sage computations in Obsidian notes.",
   "main": "main.js",
   "scripts": {
