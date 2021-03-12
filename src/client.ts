@@ -9,20 +9,23 @@ export default class Client {
   sessionId: string;
   cellSessionId: string;
   ws: any;
+  queue: string[];
   outputWriters: any;
 
   constructor(settings: any) {
     this.serverUrl = settings.serverUrl;
+    this.queue = [];
     this.outputWriters = {};
   }
 
-  async connect(): Promise<any> {
+  connect(): Promise<void> {
     return new Promise((resolve, reject) => {
-      if (this.connected) { return resolve(); }
+      if (this.connected) { return reject(); }
 
       this.connected = false;
       this.sessionId = null;
       this.cellSessionId = uuidv4();
+      this.queue = [];
       this.outputWriters = {};
       this.ws = null;
 
@@ -37,15 +40,17 @@ export default class Client {
           this.connected = true;
           resolve();
         }
-        this.ws.onmessage = (msg: any) => { this.handleReplyWithSession(msg); }
+        this.ws.onmessage = (msg: any) => { this.handleReply(msg); }
         this.ws.onclose = () => { this.disconnect(); }
+        this.ws.onerror = () => { this.disconnect(); }
       }).catch((e) => {
+        this.disconnect();
         reject(e);
       });
     });
   }
 
-  execute(code: string, outputEl: HTMLElement) {
+  enqueue(code: string, outputEl: HTMLElement) {
     const msgId = uuidv4();
     const payload = JSON.stringify({
       header: {
@@ -67,48 +72,55 @@ export default class Client {
       parent_header: {}
     });
     this.outputWriters[msgId] = new OutputWriter(outputEl);
+    this.queue.push(payload)
+  }
+
+  send() {
+    const payload = this.queue.shift();
     this.ws.send(`${this.sessionId}/channels,${payload}`);
   }
 
-  handleReplyWithSession(msg: any) {
+  async handleReply(msg: any) {
     const data = JSON.parse(msg.data.substring(46));
     const msgType = data.header.msg_type;
     const msgId = data.parent_header.msg_id;
     const content = data.content;
 
-    if (msgType == 'status' && content.execution_state) {
-      if (content.execution_state == 'dead') return this.disconnect();
-      return;
-    }
     if (msgType == 'stream' && content.text) {
       this.outputWriters[msgId].appendText(content.text);
-      return;
     }
     if (msgType == 'display_data' && content.data['text/image-filename']) {
       this.outputWriters[msgId].appendImage(this.getFileUrl(content.data['text/image-filename']));
-      return;
     }
     if (msgType == 'display_data' && content.data['text/html']) {
       this.outputWriters[msgId].appendSafeHTML(content.data['text/html']);
-      return;
     }
     if (msgType == 'error') {
       this.outputWriters[msgId].appendError(content);
-      return;
+    }
+    if (msgType == 'execute_reply') {
+      if (this.queue.length > 0) {
+        this.send();
+      } else {
+        this.disconnect();
+      }
     }
   }
 
-  disconnect() {
-    if (this.ws) this.ws.close();
-    this.connected = false;
-    this.sessionId = null;
-    this.cellSessionId = null;
-    this.outputWriters = {};
-    this.ws = null;
+  disconnect(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      if (this.ws) this.ws.close();
+      this.connected = false;
+      this.sessionId = null;
+      this.cellSessionId = null;
+      this.outputWriters = {};
+      this.ws = null;
+      resolve();
+    });
   }
 
   getKernelUrl(): string {
-    return `${this.serverUrl}/kernel?CellSessionID=${this.cellSessionId}`
+    return `${this.serverUrl}/kernel?CellSessionID=${this.cellSessionId}&timeout=inf`
   }
 
   getWSUrl(): string {

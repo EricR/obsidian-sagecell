@@ -1,3 +1,7 @@
-span.sagecell-error {
+.sagecell-error {
   color: red;
+}
+
+.sagecell-output pre {
+  margin: 0.5em 0;
 }

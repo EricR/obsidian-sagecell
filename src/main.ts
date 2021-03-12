@@ -21,26 +21,31 @@ export default class SageCellPlugin extends Plugin {
       }
     });
 
+    this.client = new Client(this.settings);
     this.configurePrismAndCodeMirror();
     this.loadMathJax();
   }
 
-  executeCurrentDoc = () => {
+  async executeCurrentDoc() {
     const activeView = this.getActiveView();
     const activeFile = activeView.file;
     const currentMode = activeView.currentMode;
     const contentEl = activeView.contentEl;
 
-    if(activeFile.extension == 'md' && currentMode.type == 'preview') {
-      contentEl.querySelectorAll('code.is-loaded.language-sage').forEach((codeEl: HTMLElement) => {
-        const client = new Client(this.settings);
-        client.connect().then(() => {
-          const code = codeEl.innerText;
-          codeEl.innerText = '';
-          client.execute(code, codeEl);
-        });
-      });
-    }
+    if (activeFile.extension != 'md' || currentMode.type != 'preview') return;
+
+    await this.client.connect();
+
+    contentEl.querySelectorAll('code.is-loaded.language-sage').forEach((codeEl: HTMLElement) => {
+      let outputEl = <HTMLElement>codeEl.parentNode.parentNode.querySelector('.sagecell-output');
+      if (outputEl) outputEl.remove();
+      outputEl = document.createElement('div');
+      outputEl.className = 'sagecell-output';
+
+      codeEl.parentNode.parentNode.insertBefore(outputEl, codeEl.nextSibling);
+      this.client.enqueue(codeEl.innerText, outputEl);
+    });
+    this.client.send();
   }
 
   getActiveView = (): any => {

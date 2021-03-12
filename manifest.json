@@ -1,7 +1,7 @@
 {
 	"id": "obsidian-sagecell",
 	"name": "SageCell",
-	"version": "1.0.2",
+	"version": "1.0.3",
 	"description": "Execute Sage computations in notes.",
 	"author": "Eric Rafaloff",
 	"isDesktopOnly": false

@@ -1,14 +1,25 @@
 export default class OutputWriter {
   outputEl: HTMLElement
+  lastType: string
 
   constructor(target: HTMLElement) {
     this.outputEl = target;
+    this.lastType = "";
   }
 
   appendText(text: string) {
-    const spanEl = document.createElement("span");
-    spanEl.innerText = text;
-    this.outputEl.appendChild(spanEl);
+    if (this.lastType == 'text') {
+      const previousPreEl = this.outputEl.querySelectorAll('pre');
+
+      if (previousPreEl.length > 0) {
+        previousPreEl[previousPreEl.length-1].innerText += text;
+      }
+    } else {
+      const preEl = document.createElement("pre");
+      preEl.innerText = text;
+      this.outputEl.appendChild(preEl);
+    }
+    this.lastType = 'text';
   }
 
   appendImage(url: string) {
@@ -18,6 +29,7 @@ export default class OutputWriter {
 
     this.outputEl.appendChild(imgEl);
     this.outputEl.appendChild(document.createTextNode("\n"));
+    this.lastType = 'image';
   }
 
   appendSafeHTML(html: string) {
@@ -43,6 +55,7 @@ export default class OutputWriter {
     });
 
     this.outputEl.innerHTML += safeDoc.body.innerHTML;
+    this.lastType = 'html';
     
     MathJax.startup.document.clear();
     MathJax.startup.document.updateDocument();
@@ -54,5 +67,6 @@ export default class OutputWriter {
     spanEl.innerText =`${error.ename}: ${error.evalue}`;
 
     this.outputEl.appendChild(spanEl);
+    this.lastType = 'error';
   }
 }
