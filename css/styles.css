@@ -1,7 +1,4 @@
-.sagecell-error {
-  color: red;
-}
-
-.sagecell-output pre {
-  margin: 0.5em 0;
+.block-language-sage-python iframe {
+  width: 100% !important;
+  border: none !important;
 }

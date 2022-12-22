@@ -1,5 +1,4 @@
 import { v4 as uuidv4 } from 'uuid';
-import fetch from 'cross-fetch';
 import SockJS from 'sockjs-client';
 import OutputWriter from './output-writer'
 
@@ -23,7 +22,7 @@ export default class Client {
       if (this.connected) { return reject(); }
 
       this.connected = false;
-      this.sessionId = null;
+      this.sessionId = "";
       this.cellSessionId = uuidv4();
       this.queue = [];
       this.outputWriters = {};
@@ -93,7 +92,7 @@ export default class Client {
       this.outputWriters[msgId].appendImage(this.getFileUrl(content.data['text/image-filename']));
     }
     if (msgType == 'display_data' && content.data['text/html']) {
-      this.outputWriters[msgId].appendSafeHTML(content.data['text/html']);
+      this.outputWriters[msgId].appendSafeHTML(content.data['text/html'].replace("cell://", this.getFileUrl("")));
     }
     if (msgType == 'error') {
       this.outputWriters[msgId].appendError(content);
@@ -111,8 +110,8 @@ export default class Client {
     return new Promise((resolve, reject) => {
       if (this.ws) this.ws.close();
       this.connected = false;
-      this.sessionId = null;
-      this.cellSessionId = null;
+      this.sessionId = "";
+      this.cellSessionId = "";
       this.outputWriters = {};
       this.ws = null;
       resolve();

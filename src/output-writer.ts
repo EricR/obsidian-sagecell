@@ -35,30 +35,11 @@ export default class OutputWriter {
   appendSafeHTML(html: string) {
     const parser = new DOMParser();
     const unsafeDoc = parser.parseFromString(html, 'text/html');
-
-    unsafeDoc.querySelectorAll('script').forEach((scriptEl: HTMLElement) => {
-      if (scriptEl.type == 'math/tex') {
-        const mathEl = document.createElement('math');
-        mathEl.appendChild(document.createTextNode(scriptEl.innerText));
-        scriptEl.parentNode.replaceChild(mathEl, scriptEl);
-      }
-    });
-
-    const safeHTML = window.DOMPurify.sanitize(unsafeDoc.documentElement.innerHTML);
+    const safeHTML = window.DOMPurify.sanitize(unsafeDoc.documentElement.innerHTML, { ADD_TAGS: ['iframe']});
     const safeDoc = parser.parseFromString(safeHTML, 'text/html');
-
-    safeDoc.querySelectorAll('math').forEach((mathEl: HTMLElement) => {
-      const spanEl = document.createElement('span')
-      spanEl.classList = 'math math-inline';
-      spanEl.appendChild(window.MathJax.tex2chtml(mathEl.textContent, {display: false}));
-      mathEl.parentNode.replaceChild(spanEl, mathEl);
-    });
 
     this.outputEl.innerHTML += safeDoc.body.innerHTML;
     this.lastType = 'html';
-    
-    MathJax.startup.document.clear();
-    MathJax.startup.document.updateDocument();
   }
 
   appendError(error: any) {
