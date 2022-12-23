@@ -84,9 +84,12 @@ export default class Client {
     const msgType = data.header.msg_type;
     const msgId = data.parent_header.msg_id;
     const content = data.content;
-
+    
     if (msgType == 'stream' && content.text) {
       this.outputWriters[msgId].appendText(content.text);
+    }
+    if (msgType == 'execute_result' && content.data['text/plain']) {
+      this.outputWriters[msgId].appendText(content.data['text/plain']);
     }
     if (msgType == 'display_data' && content.data['text/image-filename']) {
       this.outputWriters[msgId].appendImage(this.getFileUrl(content.data['text/image-filename']));

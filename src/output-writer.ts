@@ -1,3 +1,5 @@
+import { sanitizeHTMLToDom, renderMath, finishRenderMath } from 'obsidian';
+
 export default class OutputWriter {
   outputEl: HTMLElement
   lastType: string
@@ -7,7 +9,7 @@ export default class OutputWriter {
     this.lastType = "";
   }
 
-  appendText(text: string) {
+  async appendText(text: string) {
     if (this.lastType == 'text') {
       const previousPreEl = this.outputEl.querySelectorAll('pre');
 
@@ -22,7 +24,7 @@ export default class OutputWriter {
     this.lastType = 'text';
   }
 
-  appendImage(url: string) {
+  async appendImage(url: string) {
     const imgEl = document.createElement("img");
     imgEl.src = url;
     imgEl.classList.add('sagecell-image');
@@ -32,22 +34,39 @@ export default class OutputWriter {
     this.lastType = 'image';
   }
 
-  appendSafeHTML(html: string) {
-    const parser = new DOMParser();
-    const unsafeDoc = parser.parseFromString(html, 'text/html');
-    const safeHTML = window.DOMPurify.sanitize(unsafeDoc.documentElement.innerHTML, { ADD_TAGS: ['iframe']});
-    const safeDoc = parser.parseFromString(safeHTML, 'text/html');
+  async appendSafeHTML(html: string) {
+    const safeContainer = document.createElement("div");
+    safeContainer.append(sanitizeHTMLToDom(html));
+    safeContainer.innerHTML = this.replaceMathJax(safeContainer.innerHTML);
 
-    this.outputEl.innerHTML += safeDoc.body.innerHTML;
-    this.lastType = 'html';
+    this.outputEl.appendChild(safeContainer);
+    this.lastType = 'html';    
   }
 
-  appendError(error: any) {
+  async appendError(error: any) {
     const spanEl = document.createElement("pre");
     spanEl.classList.add('sagecell-error');
     spanEl.innerText =`${error.ename}: ${error.evalue}`;
 
     this.outputEl.appendChild(spanEl);
     this.lastType = 'error';
+  }
+
+  replaceMathJax(html: string) : string {
+    if(!html.startsWith("\\(") && !html.startsWith("\\[")) {
+      return html
+    }
+
+    html = html.replace(/\\\((.*)\\\)/g, (m, $1) => {
+      return renderMath($1, false).innerHTML;
+    });
+
+    html = html.replace(/\\\[(.*)\\\]/g, (m, $1) => {
+      return renderMath($1, true).innerHTML;
+    });
+
+    finishRenderMath();
+
+    return html
   }
 }
