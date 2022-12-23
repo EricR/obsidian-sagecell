@@ -30,6 +30,7 @@ export default class SageCellPlugin extends Plugin {
     // Register the new code block type.
     this.registerMarkdownCodeBlockProcessor("sage-python", async (src, el, ctx) => {
       const wrapperEl = el.createEl("div");
+      wrapperEl.classList.add("sagecell-container");
       const preEl = wrapperEl.createEl("pre")
       preEl.classList.add("language-sage-python");
       const codeEl = preEl.createEl("code");

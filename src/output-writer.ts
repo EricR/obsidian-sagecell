@@ -36,6 +36,7 @@ export default class OutputWriter {
 
   async appendSafeHTML(html: string) {
     const safeContainer = document.createElement("div");
+    safeContainer.classList.add("sagecell-html")
     safeContainer.append(sanitizeHTMLToDom(html));
     safeContainer.innerHTML = this.replaceMathJax(safeContainer.innerHTML);
 
@@ -57,12 +58,13 @@ export default class OutputWriter {
       return html
     }
 
-    html = html.replace(/\\\((.*)\\\)/g, (m, $1) => {
-      return renderMath($1, false).innerHTML;
+    // Is there a better way to do this? 
+    //
+    html = html.replace(/\\\((.*)\\\)/gs, (m, $1) => {
+      return renderMath($1.replaceAll("&amp;", "&"), false).innerHTML;
     });
-
-    html = html.replace(/\\\[(.*)\\\]/g, (m, $1) => {
-      return renderMath($1, true).innerHTML;
+    html = html.replace(/\\\[(.*)\\\]/gs, (m, $1) => {
+      return renderMath($1.replaceAll("&amp;", "&"), true).innerHTML;
     });
 
     finishRenderMath();
