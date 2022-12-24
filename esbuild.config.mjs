@@ -33,9 +33,12 @@ esbuild.build({
     '@lezer/lr'],
   format: 'cjs',
   watch: !prod,
-  target: 'es2018',
+  target: 'es2017',
   logLevel: "info",
   sourcemap: prod ? false : 'inline',
   treeShaking: true,
+  define: {
+    "global": 'window'
+  },
   outfile: 'dist/main.js',
 }).catch(() => process.exit(1));

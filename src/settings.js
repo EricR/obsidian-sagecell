@@ -1,6 +1,0 @@
-export default class SageCellSettings {
-    constructor() {
-        this.serverUrl = 'https://sagecell.sagemath.org';
-    }
-}
-//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoic2V0dGluZ3MuanMiLCJzb3VyY2VSb290IjoiIiwic291cmNlcyI6WyJzZXR0aW5ncy50cyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiQUFBQSxNQUFNLENBQUMsT0FBTyxPQUFPLGdCQUFnQjtJQUFyQztRQUNFLGNBQVMsR0FBVywrQkFBK0IsQ0FBQztJQUN0RCxDQUFDO0NBQUEiLCJzb3VyY2VzQ29udGVudCI6WyJleHBvcnQgZGVmYXVsdCBjbGFzcyBTYWdlQ2VsbFNldHRpbmdzIHtcbiAgc2VydmVyVXJsOiBzdHJpbmcgPSAnaHR0cHM6Ly9zYWdlY2VsbC5zYWdlbWF0aC5vcmcnO1xufVxuIl19

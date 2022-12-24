@@ -1,0 +1,8 @@
+.sagecell-html {
+  margin: 12px;
+}
+
+.block-language-sage-python iframe {
+  width: 100% !important;
+  border: none !important;
+}

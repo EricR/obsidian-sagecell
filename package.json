@@ -24,7 +24,7 @@
   "dependencies": {
     "@types/sockjs-client": "^1.5.1",
     "@types/uuid": "^9.0.0",
-    "sockjs-client": "^1.5.1",
+    "sockjs-client": "^1.6.1",
     "uuid": "^9.0.0"
   }
 }

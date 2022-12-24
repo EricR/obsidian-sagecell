@@ -1,5 +1,5 @@
 import {App, Setting, PluginSettingTab } from 'obsidian';
-import SageCellPlugin from './main'
+import SageCellPlugin from '../main'
 
 export default class SageCellSettingsTab extends PluginSettingTab {
   plugin: SageCellPlugin

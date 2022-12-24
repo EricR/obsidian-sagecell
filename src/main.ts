@@ -1,8 +1,10 @@
-import { Plugin, loadPrism } from 'obsidian';
+import { Plugin, MarkdownView, MarkdownRenderChild, loadPrism } from 'obsidian';
+import { EditorView } from "@codemirror/view";
 
-import SageCellSettingsTab from './settings-tab';
+import SageCellSettingsTab from './ui/settings-tab';
 import SageCellSettings from './settings';
 import Client from './client'
+import Cell from './ui/cell'
 
 declare global {
   interface Window { DOMPurify: any; MathJax: any; }
@@ -29,23 +31,46 @@ export default class SageCellPlugin extends Plugin {
 
     // Register the new code block type.
     this.registerMarkdownCodeBlockProcessor("sage-python", async (src, el, ctx) => {
-      const wrapperEl = el.createEl("div");
-      wrapperEl.classList.add("sagecell-container");
-      const preEl = wrapperEl.createEl("pre")
-      preEl.classList.add("language-sage-python");
-      const codeEl = preEl.createEl("code");
-      codeEl.classList.add("language-sage-python");
-      codeEl.textContent = src;
-      prismjs.highlightElement(codeEl);
-
-      await this.client.connect();
-      this.client.enqueue(src, wrapperEl);
-      this.client.send();
+      const cell = new Cell(el, this.client, "python", src);
+      ctx.addChild(cell);
     });
-  }
 
-  onunload() {
+    // Command to run the current file as a notebook.
+    this.addCommand({
+      id: 'sage-run',
+      name: 'Run the current file as a SageMath notebook',
+      callback: async () => {
+        if(!app.workspace.activeLeaf) return;
 
+        const activeView = app.workspace.activeLeaf.view;
+
+        if(activeView.getViewType() != "markdown") return;
+
+        const activeMarkdownView = activeView as MarkdownView;
+        const cells : Cell[] = [];
+
+        if(activeMarkdownView.getMode() == "source") {
+          // @ts-expect-error, not typed
+          const editor = activeMarkdownView.editor.cm as EditorView;
+          // @ts-expect-error, not typed
+          const children = editor.docView.children;
+
+          for(let i = 0; i < children.length; i++) {
+            if(children[i].widget && children[i].widget.lang.startsWith("sage-")) {
+              cells.push(...children[i].widget.children);
+            }
+          }
+        } else {
+          const preview = activeMarkdownView.previewMode;
+          // @ts-expect-error, not typed
+          cells.push(...preview._children);
+        }
+
+        for(let i = 0; i < cells.length; i++) {
+          await cells[i].runCode();
+        }
+      }
+    });
   }
 
   async loadSettings() {
